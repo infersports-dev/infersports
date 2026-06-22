@@ -20,7 +20,7 @@ basketball odds with first-class Asian-handicap support and sharp de-vigged fair
 | Match state / favorite / score | `match_info`, `find_match` |
 | Today's / a given day's fixtures (timezone-aware) | `list_today_matches`, `list_events` |
 | Sharp or best Asian-handicap line, per book | `get_sharp_line`, `compare_lines` |
-| Opening line (初盘) and how it moved | `get_opening_line` |
+| Opening line and how it moved | `get_opening_line` |
 | De-vigged fair probability / value spots | `find_value`, `scan_slate`, `compare_prob` |
 | Finished-match results (30-day cache) | `get_result`, `list_results` |
 | Odds-format conversion / handicap explainer | `convert_odds`, `explain_handicap` |
