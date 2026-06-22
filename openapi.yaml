@@ -1,0 +1,4162 @@
+openapi: 3.1.0
+info:
+  title: InferSports API
+  version: 1.0.0
+  description: 'Sharp Asian odds for agents — live football & basketball: Asian-handicap (quarter lines
+    with win / half-win / push), de-vigged sharp (Pinnacle) fair probabilities, live scores, opening lines,
+    and value detection. Read-only. Keyless Free tier; an optional isk_ key raises limits and unlocks
+    the sharp book.'
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+- url: https://api.infersports.dev
+paths:
+  /v1/sports:
+    get:
+      tags:
+      - metadata
+      summary: List Sports
+      operationId: list_sports_v1_sports_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataList_Sport_'
+  /v1/bookmakers:
+    get:
+      tags:
+      - metadata
+      summary: List Bookmakers
+      operationId: list_bookmakers_v1_bookmakers_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataList_Bookmaker_'
+  /v1/leagues:
+    get:
+      tags:
+      - metadata
+      summary: List Leagues
+      operationId: list_leagues_v1_leagues_get
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: fuzzy name filter (e.g. 'world cup')
+          title: Q
+        description: fuzzy name filter (e.g. 'world cup')
+      - name: sport
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_League_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/teams:
+    get:
+      tags:
+      - metadata
+      summary: List Teams
+      operationId: list_teams_v1_teams_get
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: fuzzy name filter
+          title: Q
+        description: fuzzy name filter
+      - name: sport
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_Team_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/events:
+    get:
+      tags:
+      - events
+      summary: List Events
+      operationId: list_events_v1_events_get
+      parameters:
+      - name: sport
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+      - name: league
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: league id (lg_…) or name (fuzzy-matched, e.g. 'World Cup')
+          title: League
+        description: league id (lg_…) or name (fuzzy-matched, e.g. 'World Cup')
+      - name: date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: calendar date YYYY-MM-DD (UTC day unless timezone given)
+          title: Date
+        description: calendar date YYYY-MM-DD (UTC day unless timezone given)
+      - name: timezone
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: IANA timezone for the date's day boundary (e.g. Asia/Shanghai); default UTC
+          title: Timezone
+        description: IANA timezone for the date's day boundary (e.g. Asia/Shanghai); default UTC
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: scheduled | live | finished
+          title: Status
+        description: scheduled | live | finished
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_Event_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/events/live:
+    get:
+      tags:
+      - events
+      summary: List Live Events
+      operationId: list_live_events_v1_events_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataList_Event_'
+  /v1/events/{event_id}:
+    get:
+      tags:
+      - events
+      summary: Get Event
+      operationId: get_event_v1_events__event_id__get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/events/{event_id}/state:
+    get:
+      tags:
+      - events
+      summary: Get Event State
+      operationId: get_event_state_v1_events__event_id__state_get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventState'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/events/{event_id}/odds:
+    get:
+      tags:
+      - events
+      summary: Get Event Odds
+      operationId: get_event_odds_v1_events__event_id__odds_get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Id
+      - name: bookmakers
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: comma-separated bookmaker keys
+          title: Bookmakers
+        description: comma-separated bookmaker keys
+      - name: markets
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: comma-separated market types
+          title: Markets
+        description: comma-separated market types
+      - name: period
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: full_time | half_time
+          title: Period
+        description: full_time | half_time
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: decimal
+          title: Format
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OddsBlock'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/events/{event_id}/opening:
+    get:
+      tags:
+      - events
+      summary: Get Event Opening
+      description: 'Opening odds (初盘) for this match''s currently-visible quotes.
+
+
+        For each current quote the caller may see, returns the upstream''s frozen first-seen price at
+        the
+
+        same bookmaker / market / period / line — compare against ``/odds`` to read line movement. 1x2
+
+        yields one opening per book; totals/AH yield the opening at each current line. Best-effort: a
+
+        bookmaker/line with no opening on file is omitted (the lookup is a single-point, fail-open call).'
+      operationId: get_event_opening_v1_events__event_id__opening_get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Id
+      - name: bookmakers
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: comma-separated bookmaker keys
+          title: Bookmakers
+        description: comma-separated bookmaker keys
+      - name: markets
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: comma-separated market types
+          title: Markets
+        description: comma-separated market types
+      - name: period
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: full_time | half_time
+          title: Period
+        description: full_time | half_time
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: decimal
+          title: Format
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventOpening'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/events/{event_id}/odds/{market_type}:
+    get:
+      tags:
+      - events
+      summary: Get Event Odds For Market
+      operationId: get_event_odds_for_market_v1_events__event_id__odds__market_type__get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Id
+      - name: market_type
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Market Type
+      - name: bookmakers
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bookmakers
+      - name: period
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Period
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: decimal
+          title: Format
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OddsBlock'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/results:
+    get:
+      tags:
+      - results
+      summary: List Results
+      operationId: list_results_v1_results_get
+      parameters:
+      - name: date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: UTC kickoff date YYYY-MM-DD
+          title: Date
+        description: UTC kickoff date YYYY-MM-DD
+      - name: team
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: case-insensitive substring on either team
+          title: Team
+        description: case-insensitive substring on either team
+      - name: league
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: case-insensitive substring on the league name
+          title: League
+        description: case-insensitive substring on the league name
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          description: max results (most-recent-first)
+          default: 50
+          title: Limit
+        description: max results (most-recent-first)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/results/{event_id}:
+    get:
+      tags:
+      - results
+      summary: Get Result
+      operationId: get_result_v1_results__event_id__get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/resolve/event:
+    post:
+      tags:
+      - resolve
+      summary: Resolve Event
+      operationId: resolve_event_v1_resolve_event_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveEventRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveEventResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/resolve/team:
+    post:
+      tags:
+      - resolve
+      summary: Resolve Team
+      operationId: resolve_team_v1_resolve_team_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveTeamRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveTeamResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/resolve/league:
+    post:
+      tags:
+      - resolve
+      summary: Resolve League
+      operationId: resolve_league_v1_resolve_league_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveLeagueRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveLeagueResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/convert/odds:
+    post:
+      tags:
+      - convert
+      summary: Convert Odds
+      operationId: convert_odds_v1_convert_odds_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertOddsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertOddsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/convert/handicap:
+    post:
+      tags:
+      - convert
+      summary: Convert Handicap
+      operationId: convert_handicap_v1_convert_handicap_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertHandicapRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertHandicapResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/tools:
+    get:
+      tags:
+      - mcp
+      summary: List Tools
+      description: Discovery manifest of the available MCP tools.
+      operationId: list_tools_v1_mcp_tools_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response List Tools V1 Mcp Tools Get
+  /v1/mcp/get_sharp_line:
+    post:
+      tags:
+      - mcp
+      summary: Get Sharp Line
+      operationId: get_sharp_line_v1_mcp_get_sharp_line_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SharpLineRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharpLineResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/find_match:
+    post:
+      tags:
+      - mcp
+      summary: Find Match
+      operationId: find_match_v1_mcp_find_match_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindMatchRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindMatchResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/get_match_odds:
+    post:
+      tags:
+      - mcp
+      summary: Get Match Odds
+      operationId: get_match_odds_v1_mcp_get_match_odds_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetMatchOddsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchOddsResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/compare_lines:
+    post:
+      tags:
+      - mcp
+      summary: Compare Lines
+      operationId: compare_lines_v1_mcp_compare_lines_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompareLinesRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompareLinesResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/explain_handicap:
+    post:
+      tags:
+      - mcp
+      summary: Explain Handicap
+      operationId: explain_handicap_v1_mcp_explain_handicap_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExplainHandicapRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertHandicapResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/list_today_matches:
+    post:
+      tags:
+      - mcp
+      summary: List Today Matches
+      operationId: list_today_matches_v1_mcp_list_today_matches_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListTodayMatchesRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodayMatchesResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/list_events:
+    post:
+      tags:
+      - mcp
+      summary: List Events
+      operationId: list_events_v1_mcp_list_events_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListEventsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEventsResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/match_info:
+    post:
+      tags:
+      - mcp
+      summary: Match Info
+      operationId: match_info_v1_mcp_match_info_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchInfoRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchInfoResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/list_bookmakers:
+    post:
+      tags:
+      - mcp
+      summary: List Bookmakers
+      operationId: list_bookmakers_v1_mcp_list_bookmakers_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListBookmakersRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookmakersResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/get_opening_line:
+    post:
+      tags:
+      - mcp
+      summary: Get Opening Line
+      operationId: get_opening_line_v1_mcp_get_opening_line_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpeningLineRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpeningLineResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/find_value:
+    post:
+      tags:
+      - mcp
+      summary: Find Value
+      operationId: find_value_v1_mcp_find_value_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindValueRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindValueResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/compare_prob:
+    post:
+      tags:
+      - mcp
+      summary: Compare Prob
+      operationId: compare_prob_v1_mcp_compare_prob_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompareProbRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompareProbResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/score_prob:
+    post:
+      tags:
+      - mcp
+      summary: Score Prob
+      operationId: score_prob_v1_mcp_score_prob_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoreProbRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreProbResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/find_arbitrage:
+    post:
+      tags:
+      - mcp
+      summary: Find Arbitrage
+      operationId: find_arbitrage_v1_mcp_find_arbitrage_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindArbitrageRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindArbitrageResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/scan_slate:
+    post:
+      tags:
+      - mcp
+      summary: Scan Slate
+      operationId: scan_slate_v1_mcp_scan_slate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanSlateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanSlateResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/list_results:
+    post:
+      tags:
+      - mcp
+      summary: List Results
+      operationId: list_results_v1_mcp_list_results_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListResultsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResultsResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/mcp/get_result:
+    post:
+      tags:
+      - mcp
+      summary: Get Result
+      operationId: get_result_v1_mcp_get_result_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetResultRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetResultResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /health:
+    get:
+      tags:
+      - ops
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Health Get
+  /v1/usage:
+    get:
+      tags:
+      - ops
+      summary: Usage
+      description: 'Request / error / latency metrics for the CALLER''S OWN key (PRD-v3 §7).
+
+
+        Requires a real API key — keyless callers are rejected. Scoped to the caller: only this key''s
+
+        own bucket is returned (masked), never the full per-key map, so one customer can''t read another
+
+        customer''s key material or usage. The session-scoped dashboard uses /platform/usage instead.'
+      operationId: usage_v1_usage_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Usage V1 Usage Get
+components:
+  schemas:
+    ArbLeg:
+      properties:
+        outcome:
+          type: string
+          title: Outcome
+          description: home | draw | away | over | under.
+        bookmaker:
+          type: string
+          title: Bookmaker
+          description: Book offering the best price for this leg (its key).
+        price:
+          anyOf:
+          - type: number
+          - type: integer
+          title: Price
+          description: Best price for this leg, in the requested format.
+        decimal:
+          type: number
+          title: Decimal
+          description: That price in decimal.
+      type: object
+      required:
+      - outcome
+      - bookmaker
+      - price
+      - decimal
+      title: ArbLeg
+    ArbOpportunity:
+      properties:
+        market_type:
+          type: string
+          title: Market Type
+        period:
+          type: string
+          title: Period
+        line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Line
+          description: AH/totals line; null for 1x2.
+        legs:
+          items:
+            $ref: '#/components/schemas/ArbLeg'
+          type: array
+          title: Legs
+          description: Best book per outcome — one leg per outcome.
+        inverse_sum:
+          type: number
+          title: Inverse Sum
+          description: Σ(1/decimal) over the legs. < 1 ⇒ arbitrage.
+        margin_pct:
+          type: number
+          title: Margin Pct
+          description: Guaranteed margin (1/inverse_sum − 1) × 100.
+      type: object
+      required:
+      - market_type
+      - period
+      - legs
+      - inverse_sum
+      - margin_pct
+      title: ArbOpportunity
+      description: 'A cross-book price inefficiency: best price per outcome (same line) inverts to < 1.
+
+
+        DETECTION ONLY — we report the margin and which book holds each leg; we do NOT size stakes or
+
+        link out to place bets (InferSports is read-only).'
+    BestPrice:
+      properties:
+        outcome:
+          type: string
+          title: Outcome
+          description: home/draw/away (1x2), home/away (AH), or over/under (totals).
+        bookmaker:
+          type: string
+          title: Bookmaker
+        price:
+          anyOf:
+          - type: number
+          - type: integer
+          title: Price
+          description: Best price for this outcome in the requested format.
+        decimal:
+          type: number
+          title: Decimal
+          description: Same price as decimal odds (for comparison).
+      type: object
+      required:
+      - outcome
+      - bookmaker
+      - price
+      - decimal
+      title: BestPrice
+    BookLine:
+      properties:
+        bookmaker:
+          type: string
+          title: Bookmaker
+        line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Line
+          description: Handicap/total line (null for 1x2).
+        prices:
+          additionalProperties:
+            anyOf:
+            - type: number
+            - type: integer
+          type: object
+          title: Prices
+        overround:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Overround
+          description: Book margin = Σ(1/decimal) − 1 over this market's outcomes.
+        status:
+          type: string
+          title: Status
+          description: open | suspended
+      type: object
+      required:
+      - bookmaker
+      - prices
+      - status
+      title: BookLine
+    Bookmaker:
+      properties:
+        id:
+          type: string
+          title: Id
+        key:
+          type: string
+          title: Key
+        name:
+          type: string
+          title: Name
+        class:
+          type: string
+          title: Class
+      type: object
+      required:
+      - id
+      - key
+      - name
+      - class
+      title: Bookmaker
+    BookmakerInfo:
+      properties:
+        key:
+          type: string
+          title: Key
+          description: Stable slug used in ?bookmakers= / bookmakers=[...].
+        name:
+          type: string
+          title: Name
+          description: English display name.
+        class:
+          type: string
+          title: Class
+          description: '''sharp'' (Pinnacle) | ''asian''.'
+      type: object
+      required:
+      - key
+      - name
+      - class
+      title: BookmakerInfo
+    BookmakersResult:
+      properties:
+        count:
+          type: integer
+          title: Count
+        bookmakers:
+          items:
+            $ref: '#/components/schemas/BookmakerInfo'
+          type: array
+          title: Bookmakers
+        note:
+          type: string
+          title: Note
+          description: Tier coverage caveat — e.g. Free tier excludes sharp books; null-safe string.
+      type: object
+      required:
+      - count
+      - bookmakers
+      - note
+      title: BookmakersResult
+    CompareLinesRequest:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+          description: Event id (evt_…).
+        market_type:
+          type: string
+          title: Market Type
+          description: 1x2 | asian_handicap | totals.
+          default: asian_handicap
+        period:
+          type: string
+          title: Period
+          description: full_time | half_time.
+          default: full_time
+        format:
+          type: string
+          title: Format
+          description: Display format for prices (analytics use decimal).
+          default: decimal
+        verbosity:
+          type: string
+          title: Verbosity
+          description: full | terse. 'terse' drops the per-book `books` array (the bulk of the payload)
+            and returns only the computed answer (best_prices / consensus_line / fair_odds / summary).
+            Use it when you only need the worked numbers, not every book's line-by-line quote.
+          default: full
+      type: object
+      required:
+      - event_id
+      title: CompareLinesRequest
+    CompareLinesResult:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        home_team:
+          type: string
+          title: Home Team
+        away_team:
+          type: string
+          title: Away Team
+        market_type:
+          type: string
+          title: Market Type
+        period:
+          type: string
+          title: Period
+        format:
+          type: string
+          title: Format
+        as_of:
+          type: string
+          title: As Of
+        stale:
+          type: boolean
+          title: Stale
+          description: True when as_of is older than the freshness window for the match state.
+        consensus_line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Consensus Line
+          description: Line offered by the most books (null for 1x2 / no books).
+        lines_offered:
+          items:
+            type: number
+          type: array
+          title: Lines Offered
+          description: Distinct lines present across books (AH/totals).
+        best_prices:
+          items:
+            $ref: '#/components/schemas/BestPrice'
+          type: array
+          title: Best Prices
+          description: Best price per outcome on the consensus line (across all returned books).
+        fair_odds:
+          anyOf:
+          - additionalProperties:
+              type: number
+            type: object
+          - type: 'null'
+          title: Fair Odds
+          description: De-vigged fair decimal odds from the sharpest (lowest-overround) book on the consensus
+            line.
+        fair_from:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fair From
+          description: Bookmaker key the fair_odds were de-vigged from.
+        books:
+          items:
+            $ref: '#/components/schemas/BookLine'
+          type: array
+          title: Books
+          description: Every book's quote for this market, line-by-line. Empty when verbosity='terse'
+            (check book_count for how many books backed the analytics — empty here ≠ no books).
+        book_count:
+          type: integer
+          title: Book Count
+          default: 0
+        summary:
+          type: string
+          title: Summary
+          description: One ready-to-read sentence stating the consensus line, best prices and fair odds
+            (W2) — quote it to the user directly. Present in both verbosity modes.
+          default: ''
+        verbosity:
+          type: string
+          title: Verbosity
+          description: Echo of the requested verbosity ('full' | 'terse').
+          default: full
+      type: object
+      required:
+      - event_id
+      - home_team
+      - away_team
+      - market_type
+      - period
+      - format
+      - as_of
+      - stale
+      title: CompareLinesResult
+    CompareProbRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+          description: Natural-language fixture, e.g. 'France vs Argentina' or a team.
+        external_prob:
+          type: number
+          title: External Prob
+          description: The external (e.g. prediction-market) implied probability for `outcome`, in (0,1).
+            Pre-net it for the venue's fee/spread (we don't ingest prediction-market data).
+        market_type:
+          type: string
+          title: Market Type
+          description: 1x2 | asian_handicap | totals.
+          default: 1x2
+        period:
+          type: string
+          title: Period
+          description: full_time | half_time.
+          default: full_time
+        outcome:
+          type: string
+          title: Outcome
+          description: 'Which leg the external_prob is for: home/draw/away (1x2), home/away (asian_handicap),
+            over/under (totals).'
+          default: home
+        external_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: External Label
+          description: Cosmetic source label echoed back, e.g. 'polymarket' | 'kalshi'.
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Optional filter: football | basketball.'
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+          description: Optional UTC date YYYY-MM-DD to disambiguate.
+      type: object
+      required:
+      - query
+      - external_prob
+      title: CompareProbRequest
+    CompareProbResult:
+      properties:
+        status:
+          type: string
+          title: Status
+        query:
+          type: string
+          title: Query
+        summary:
+          type: string
+          title: Summary
+        match:
+          anyOf:
+          - $ref: '#/components/schemas/MatchSummary'
+          - type: 'null'
+        market_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Market Type
+        period:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Period
+        outcome:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Outcome
+        line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Line
+          description: Consensus line used (AH/totals; null for 1x2).
+        fair_prob:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Fair Prob
+          description: Sharp de-vigged fair probability for `outcome` (0–1).
+        fair_decimal:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Fair Decimal
+          description: Same fair value as decimal odds.
+        fair_from:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fair From
+          description: Bookmaker key the fair line was de-vigged from.
+        external_prob:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: External Prob
+        external_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: External Label
+        edge_pp:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Edge Pp
+          description: (fair_prob − external_prob)·100, in percentage points. Positive ⇒ external YES
+            is cheap.
+        ev_roi:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Ev Roi
+          description: Expected ROI buying YES at external_prob = edge/external_prob.
+        verdict:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verdict
+          description: good | marginal | no_edge (vs a market-shape noise floor).
+        devig_method:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Devig Method
+          description: proportional | power (power for 3-way 1x2).
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        stale:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Stale
+        caveats:
+          items:
+            type: string
+          type: array
+          title: Caveats
+          description: Mapping/freshness traps to respect before acting.
+        alternatives:
+          items:
+            $ref: '#/components/schemas/MatchAlternative'
+          type: array
+          title: Alternatives
+        ask_user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ask User
+      type: object
+      required:
+      - status
+      - query
+      - summary
+      title: CompareProbResult
+      description: 'Is an external probability good vs our sharp de-vigged fair line? DETECTION ONLY (read-only).
+
+
+        ``status``: ``ok`` (fair line found, edge computed), ``no_line`` (no sharp fair for that
+
+        market/period — can''t judge), ``ambiguous`` (alternatives + ask_user; never guessed), or
+
+        ``not_found``. ``edge_pp = (fair_prob − external_prob)·100`` (positive ⇒ the external YES price
+        is
+
+        cheap vs the sharp fair). The caller owns the prediction-market→probability mapping; ``caveats``
+
+        flags the traps (1x2 regulation/draw, AH push mass, staleness).'
+    ConvertHandicapRequest:
+      properties:
+        line:
+          type: number
+          title: Line
+      type: object
+      required:
+      - line
+      title: ConvertHandicapRequest
+    ConvertHandicapResponse:
+      properties:
+        handicap_raw:
+          type: string
+          title: Handicap Raw
+        handicap_decimal:
+          type: number
+          title: Handicap Decimal
+        handicap_components:
+          items:
+            type: number
+          type: array
+          title: Handicap Components
+        explanation:
+          type: string
+          title: Explanation
+        win_conditions:
+          $ref: '#/components/schemas/WinConditions'
+      type: object
+      required:
+      - handicap_raw
+      - handicap_decimal
+      - handicap_components
+      - explanation
+      - win_conditions
+      title: ConvertHandicapResponse
+    ConvertOddsRequest:
+      properties:
+        value:
+          type: number
+          title: Value
+        from:
+          type: string
+          title: From
+        to:
+          items:
+            type: string
+          type: array
+          title: To
+        bookmaker:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bookmaker
+          description: Optional bookmaker key (e.g. 'crown') whose Malay-odds rounding to apply; omitted
+            → canonical rounding.
+      type: object
+      required:
+      - value
+      - from
+      - to
+      title: ConvertOddsRequest
+    ConvertOddsResponse:
+      properties:
+        decimal:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Decimal
+        hk:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Hk
+        malay:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Malay
+        american:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: American
+        indonesian:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Indonesian
+        probability:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Probability
+      type: object
+      title: ConvertOddsResponse
+    DataList_Bookmaker_:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Bookmaker'
+          type: array
+          title: Data
+      type: object
+      required:
+      - data
+      title: DataList[Bookmaker]
+    DataList_Event_:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Event'
+          type: array
+          title: Data
+      type: object
+      required:
+      - data
+      title: DataList[Event]
+    DataList_Sport_:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Sport'
+          type: array
+          title: Data
+      type: object
+      required:
+      - data
+      title: DataList[Sport]
+    DateRange:
+      properties:
+        from:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: From
+        to:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: To
+      type: object
+      title: DateRange
+    Decision:
+      properties:
+        safe_to_proceed:
+          type: boolean
+          title: Safe To Proceed
+          description: True when the result is unambiguous enough to act on without asking the user.
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+          description: Resolution confidence 0–1 (null when not applicable).
+        ask_user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ask User
+          description: A disambiguation question to put to the user; null when safe_to_proceed.
+        next_action:
+          anyOf:
+          - $ref: '#/components/schemas/NextAction'
+          - type: 'null'
+          description: Suggested next call; null when the caller must ask first or nothing follows.
+      type: object
+      required:
+      - safe_to_proceed
+      title: Decision
+      description: 'Pre-computed go/no-go for the caller (W3): we decide whether it''s safe to proceed
+        so the
+
+        agent doesn''t have to reason it out (and risk guessing). Branch on ``safe_to_proceed``:
+
+        true → act on the result without asking; false → put ``ask_user`` to the human, or follow
+
+        ``next_action`` when there''s a clear recovery step (e.g. nothing resolved → list fixtures).'
+    Event:
+      properties:
+        id:
+          type: string
+          title: Id
+        sport:
+          type: string
+          title: Sport
+        league:
+          $ref: '#/components/schemas/LeagueRef'
+        home_team:
+          $ref: '#/components/schemas/TeamRef'
+        away_team:
+          $ref: '#/components/schemas/TeamRef'
+        scheduled_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scheduled At
+        status:
+          type: string
+          title: Status
+      type: object
+      required:
+      - id
+      - sport
+      - league
+      - home_team
+      - away_team
+      - status
+      title: Event
+    EventCandidate:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        confidence:
+          type: number
+          title: Confidence
+      type: object
+      required:
+      - event_id
+      - confidence
+      title: EventCandidate
+    EventOpening:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        source:
+          type: string
+          title: Source
+        opening:
+          items:
+            $ref: '#/components/schemas/OpeningQuote'
+          type: array
+          title: Opening
+      type: object
+      required:
+      - event_id
+      - opening
+      title: EventOpening
+    EventState:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        status:
+          type: string
+          title: Status
+        score:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+        red_cards:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+        clock:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Clock
+        as_of:
+          type: string
+          title: As Of
+      type: object
+      required:
+      - event_id
+      - status
+      - as_of
+      title: EventState
+    ExplainHandicapRequest:
+      properties:
+        line:
+          type: number
+          title: Line
+          description: Asian handicap line, a multiple of 0.25 (e.g. -0.75, 0, +1.5).
+      type: object
+      required:
+      - line
+      title: ExplainHandicapRequest
+    Favorite:
+      properties:
+        outcome:
+          type: string
+          title: Outcome
+          description: home | draw | away.
+        team:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Team
+          description: Team name for home/away; null for a draw.
+        win_probability:
+          type: number
+          title: Win Probability
+          description: De-vigged implied probability for this outcome (0–1).
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+          description: Bookmaker key the 1x2 was de-vigged from.
+      type: object
+      required:
+      - outcome
+      - win_probability
+      title: Favorite
+      description: Who the market favors, in plain terms — de-vigged from the full-time 1x2 line.
+    FindArbitrageRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+          description: Natural-language fixture, e.g. 'Netherlands vs Algeria'.
+        markets:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Markets
+          description: Filter to these markets (1x2 / asian_handicap / totals); default all.
+        period:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Period
+          description: Filter to full_time | half_time; default both.
+        min_margin_pct:
+          type: number
+          minimum: 0.0
+          title: Min Margin Pct
+          description: Only report opportunities whose guaranteed margin is at least this %%. Default
+            0 (any positive arb).
+          default: 0.0
+        format:
+          type: string
+          title: Format
+          description: Odds format for rendered prices.
+          default: decimal
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Disambiguation hint: football | basketball.'
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+          description: 'Disambiguation hint: UTC date YYYY-MM-DD.'
+      type: object
+      required:
+      - query
+      title: FindArbitrageRequest
+    FindArbitrageResult:
+      properties:
+        status:
+          type: string
+          title: Status
+        query:
+          type: string
+          title: Query
+        summary:
+          type: string
+          title: Summary
+        match:
+          anyOf:
+          - $ref: '#/components/schemas/MatchSummary'
+          - type: 'null'
+        opportunities:
+          items:
+            $ref: '#/components/schemas/ArbOpportunity'
+          type: array
+          title: Opportunities
+        alternatives:
+          items:
+            $ref: '#/components/schemas/MatchAlternative'
+          type: array
+          title: Alternatives
+        ask_user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ask User
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        stale:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Stale
+          description: Freshness of the odds (W4); null if no match.
+        decision:
+          $ref: '#/components/schemas/Decision'
+          description: 'Pre-computed go/no-go (W3): safe_to_proceed + suggested next_action.'
+      type: object
+      required:
+      - status
+      - query
+      - summary
+      - decision
+      title: FindArbitrageResult
+      description: 'One-call NL→arb scan: cross-book price inefficiencies within a fixture.
+
+
+        DETECTION ONLY (read-only): margin + which book holds each leg; never stakes or bet links.
+
+        ``status`` is the same go/no-go as get_sharp_line (ok | ambiguous | not_found; never guessed).
+
+        Free tier drops the sharp book, which both shrinks the book set and removes the most common
+
+        arb counterparty — expect fewer hits.'
+    FindMatchRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+          description: Natural-language fixture, e.g. 'Man City vs Arsenal' or a single team name.
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Optional filter: football | basketball.'
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+          description: Optional UTC date 'YYYY-MM-DD' to disambiguate same-name fixtures.
+      type: object
+      required:
+      - query
+      title: FindMatchRequest
+    FindMatchResult:
+      properties:
+        status:
+          type: string
+          title: Status
+          description: matched | ambiguous | not_found
+        query:
+          type: string
+          title: Query
+        match:
+          anyOf:
+          - $ref: '#/components/schemas/MatchSummary'
+          - type: 'null'
+          description: Best match (null if not_found).
+        alternatives:
+          items:
+            $ref: '#/components/schemas/MatchAlternative'
+          type: array
+          title: Alternatives
+          description: Other plausible fixtures, best-first.
+        decision:
+          $ref: '#/components/schemas/Decision'
+          description: 'Pre-computed go/no-go (W3): safe_to_proceed, ask_user, and the suggested next_action.'
+      type: object
+      required:
+      - status
+      - query
+      - decision
+      title: FindMatchResult
+    FindValueRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+          description: Natural-language fixture, e.g. 'Netherlands vs Algeria'.
+        markets:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Markets
+          description: Filter to these markets (1x2 / asian_handicap / totals); default all.
+        period:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Period
+          description: Filter to full_time | half_time; default both.
+        min_edge_pct:
+          type: number
+          minimum: 0.0
+          title: Min Edge Pct
+          description: Only report outcomes whose best price beats the de-vigged fair price by at least
+            this %% (edge = best/fair − 1). Default 1.0.
+          default: 1.0
+        format:
+          type: string
+          title: Format
+          description: Odds format for rendered prices.
+          default: decimal
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Disambiguation hint: football | basketball.'
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+          description: 'Disambiguation hint: UTC date YYYY-MM-DD.'
+      type: object
+      required:
+      - query
+      title: FindValueRequest
+    FindValueResult:
+      properties:
+        status:
+          type: string
+          title: Status
+        query:
+          type: string
+          title: Query
+        summary:
+          type: string
+          title: Summary
+        match:
+          anyOf:
+          - $ref: '#/components/schemas/MatchSummary'
+          - type: 'null'
+        value_bets:
+          items:
+            $ref: '#/components/schemas/ValueBet'
+          type: array
+          title: Value Bets
+        fair_source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fair Source
+          description: Bookmaker key whose de-vigged line was used as the fair reference.
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+          description: 'Caveats (e.g. Free tier: no sharp book, fair is approximate).'
+        alternatives:
+          items:
+            $ref: '#/components/schemas/MatchAlternative'
+          type: array
+          title: Alternatives
+        ask_user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ask User
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        stale:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Stale
+          description: Freshness of the odds (W4); null if no match.
+        decision:
+          $ref: '#/components/schemas/Decision'
+          description: 'Pre-computed go/no-go (W3): safe_to_proceed + suggested next_action.'
+      type: object
+      required:
+      - status
+      - query
+      - summary
+      - decision
+      title: FindValueResult
+      description: 'One-call NL→value scan: where does a book beat the sharp de-vigged fair line?
+
+
+        DETECTION ONLY (read-only): we surface the edge, not stakes or bet links. ``status`` is the
+
+        same go/no-go as get_sharp_line (ok | ambiguous | not_found; ambiguous never guessed). Requires
+
+        a sharp reference to de-vig — on the Free tier the sharp book (Pinnacle) is gated, so fair odds
+
+        fall back to the tightest available book and ``note`` flags the reduced confidence.'
+    GetMatchOddsRequest:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+          description: Event id from find_match / list_today_matches (evt_…).
+        markets:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Markets
+          description: 'Filter to these market types: 1x2 | asian_handicap | totals.'
+        bookmakers:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Bookmakers
+          description: Filter to these bookmaker keys, e.g. ['pinnacle','crown'].
+        period:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Period
+          description: 'full_time | half_time (default: both).'
+        format:
+          type: string
+          title: Format
+          description: 'Odds format: decimal | hk | malay | american | indonesian | probability.'
+          default: decimal
+      type: object
+      required:
+      - event_id
+      title: GetMatchOddsRequest
+    GetResultRequest:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+          description: Event id (evt_…) from find_match / list_results.
+      type: object
+      required:
+      - event_id
+      title: GetResultRequest
+    GetResultResult:
+      properties:
+        status:
+          type: string
+          title: Status
+          description: found | not_found.
+        event_id:
+          type: string
+          title: Event Id
+          description: Echo of the requested event id.
+        result:
+          anyOf:
+          - $ref: '#/components/schemas/ResultEntry'
+          - type: 'null'
+          description: The cached result, or null when not in the 30-day cache.
+      type: object
+      required:
+      - status
+      - event_id
+      title: GetResultResult
+      description: One finished-match result, or status='not_found' when it isn't in the cache.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    League:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        sport:
+          type: string
+          title: Sport
+      type: object
+      required:
+      - id
+      - name
+      - sport
+      title: League
+    LeagueCandidate:
+      properties:
+        league_id:
+          type: string
+          title: League Id
+        confidence:
+          type: number
+          title: Confidence
+      type: object
+      required:
+      - league_id
+      - confidence
+      title: LeagueCandidate
+    LeagueRef:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: LeagueRef
+    ListBookmakersRequest:
+      properties: {}
+      type: object
+      title: ListBookmakersRequest
+      description: No parameters — the catalogue is fixed; tier coverage is applied from the caller's
+        key.
+    ListEventsRequest:
+      properties:
+        date:
+          type: string
+          title: Date
+          description: Calendar day to list, 'YYYY-MM-DD'. REQUIRED — this tool always returns a bounded
+            window (use list_today_matches for 'today + still-live').
+        date_to:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date To
+          description: Optional inclusive end day 'YYYY-MM-DD' — one call covers the whole [date, date_to]
+            window (max 31 days), e.g. a tournament's group stage. Omit for a single day.
+        timezone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timezone
+          description: Optional IANA timezone (e.g. 'Asia/Shanghai', 'America/New_York'). The day boundary
+            is computed in this zone; default is the UTC day. The response keeps UTC `scheduled_at` as
+            canonical and adds `scheduled_at_local` per fixture.
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Filter: football | basketball.'
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+          description: 'Filter: scheduled | live | finished.'
+        league:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: League
+          description: Filter by external league id (lg_…).
+        limit:
+          type: integer
+          maximum: 200.0
+          minimum: 1.0
+          title: Limit
+          description: Max fixtures to return (kickoff order).
+          default: 50
+      type: object
+      required:
+      - date
+      title: ListEventsRequest
+    ListEventsResult:
+      properties:
+        date:
+          type: string
+          title: Date
+          description: The calendar day listed (YYYY-MM-DD), in `timezone` if given else UTC.
+        date_to:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date To
+          description: Inclusive end day when a range was requested (null = single day).
+        timezone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timezone
+          description: Echo of the requested timezone (null = UTC day).
+        count:
+          type: integer
+          title: Count
+          description: Fixtures returned (after the limit cap).
+        truncated:
+          type: boolean
+          title: Truncated
+          description: True when more fixtures matched the day than were returned.
+          default: false
+        matches:
+          items:
+            $ref: '#/components/schemas/MatchSummary'
+          type: array
+          title: Matches
+      type: object
+      required:
+      - date
+      - count
+      - matches
+      title: ListEventsResult
+      description: 'A specific calendar day''s fixtures (kickoff order), bounded by `limit`.
+
+
+        UTC-canonical: `date` echoes the requested day, `timezone` the zone its boundary was computed
+        in
+
+        (null = UTC). Each fixture''s `scheduled_at` stays UTC; `scheduled_at_local` is populated when
+        a
+
+        timezone was given. `truncated` is true when more fixtures fell on the day than were returned
+        —
+
+        narrow with sport/status/league rather than paging.'
+    ListResultsRequest:
+      properties:
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+          description: Filter by UTC kickoff date 'YYYY-MM-DD' (the day the match was played).
+        team:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Team
+          description: Case-insensitive substring matched against either team name.
+        league:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: League
+          description: Case-insensitive substring matched against the league name.
+        limit:
+          type: integer
+          maximum: 200.0
+          minimum: 1.0
+          title: Limit
+          description: Max results (most-recent-first).
+          default: 50
+      type: object
+      title: ListResultsRequest
+    ListResultsResult:
+      properties:
+        count:
+          type: integer
+          title: Count
+          description: Number of results returned.
+        results:
+          items:
+            $ref: '#/components/schemas/ResultEntry'
+          type: array
+          title: Results
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+          description: 'Set when 0 results but the queried fixture exists and hasn''t finished: its current
+            status, so an empty list isn''t mistaken for ''no such match''.'
+      type: object
+      required:
+      - count
+      title: ListResultsResult
+      description: Finished-match results from the 30-day cache, most-recent-first.
+    ListTodayMatchesRequest:
+      properties:
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Filter: football | basketball.'
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+          description: 'Filter: live | scheduled | finished.'
+        league:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: League
+          description: Filter by external league id (lg_…).
+        limit:
+          type: integer
+          maximum: 200.0
+          minimum: 1.0
+          title: Limit
+          description: Max fixtures to return.
+          default: 50
+        timezone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timezone
+          description: Optional IANA timezone (e.g. 'America/New_York', 'Asia/Shanghai') to render each
+            fixture's kickoff in its `summary` as local time; default UTC.
+      type: object
+      title: ListTodayMatchesRequest
+    MatchAlternative:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        label:
+          type: string
+          title: Label
+          description: '''Home vs Away'' label for disambiguation.'
+        confidence:
+          type: number
+          title: Confidence
+      type: object
+      required:
+      - event_id
+      - label
+      - confidence
+      title: MatchAlternative
+      description: A runner-up fixture when a query is ambiguous.
+    MatchInfoRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+          description: Natural-language fixture or team, e.g. 'Brazil vs Argentina' or just 'Brazil'.
+        timezone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timezone
+          description: Optional IANA timezone (e.g. 'America/New_York', 'Asia/Shanghai') to show the kickoff
+            time in local time; default UTC.
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Optional filter: football | basketball.'
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+          description: Optional UTC date 'YYYY-MM-DD' to disambiguate same-name fixtures.
+      type: object
+      required:
+      - query
+      title: MatchInfoRequest
+    MatchInfoResult:
+      properties:
+        status:
+          type: string
+          title: Status
+        query:
+          type: string
+          title: Query
+        summary:
+          type: string
+          title: Summary
+        match:
+          anyOf:
+          - $ref: '#/components/schemas/MatchSummary'
+          - type: 'null'
+        scheduled_at_local:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scheduled At Local
+          description: Kickoff in the requested timezone (ISO-8601); null if no timezone given or unparseable.
+        timezone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timezone
+          description: Echo of the requested timezone.
+        favorite:
+          anyOf:
+          - $ref: '#/components/schemas/Favorite'
+          - type: 'null'
+        implied_probabilities:
+          anyOf:
+          - additionalProperties:
+              type: number
+            type: object
+          - type: 'null'
+          title: Implied Probabilities
+          description: De-vigged win probabilities per 1x2 outcome (home/draw/away); null when no 1x2.
+        alternatives:
+          items:
+            $ref: '#/components/schemas/MatchAlternative'
+          type: array
+          title: Alternatives
+        ask_user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ask User
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        stale:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Stale
+          description: Freshness of the data (W4); null when no match resolved.
+        decision:
+          $ref: '#/components/schemas/Decision'
+          description: 'Pre-computed go/no-go (W3): safe_to_proceed + suggested next_action.'
+      type: object
+      required:
+      - status
+      - query
+      - summary
+      - decision
+      title: MatchInfoResult
+      description: 'One-call NL→basics: score, status, kickoff (local), and who''s favored — no betting
+        knowledge needed.
+
+
+        The casual front door. ``status`` is the same go/no-go as get_sharp_line (ok | ambiguous |
+
+        not_found; ambiguous is never guessed). ``summary`` is a ready-to-read one-liner. ``favorite``
+        and
+
+        ``implied_probabilities`` are best-effort — null when no 1x2 is on file (e.g. the sharp book is
+
+        gated on the Free tier and no other book quotes 1x2 for this fixture).'
+    MatchOddsResult:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        home_team:
+          type: string
+          title: Home Team
+        away_team:
+          type: string
+          title: Away Team
+        league:
+          type: string
+          title: League
+        status:
+          type: string
+          title: Status
+        as_of:
+          type: string
+          title: As Of
+          description: Freshness stamp — last upstream update applied (ISO-8601 UTC).
+        stale:
+          type: boolean
+          title: Stale
+          description: True when as_of is older than the freshness window for the match state (live vs
+            pre-match) — warn the user before quoting these as live.
+        odds:
+          items:
+            $ref: '#/components/schemas/OddsQuote'
+          type: array
+          title: Odds
+      type: object
+      required:
+      - event_id
+      - home_team
+      - away_team
+      - league
+      - status
+      - as_of
+      - stale
+      - odds
+      title: MatchOddsResult
+    MatchResult:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+          description: Canonical event id (evt_…).
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: football | basketball.
+        league:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: League
+          description: League name.
+        home_team:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Home Team
+          description: Home team name.
+        away_team:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Away Team
+          description: Away team name.
+        scheduled_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scheduled At
+          description: Kickoff, ISO-8601 UTC.
+        score:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+          description: Final score {home, away}.
+        red_cards:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+          description: Final per-side red-card counts {home, away}; null if none on file.
+        finished_at:
+          type: string
+          title: Finished At
+          description: When this result was first recorded as finished (ISO-8601 UTC).
+      type: object
+      required:
+      - event_id
+      - finished_at
+      title: MatchResult
+    MatchSummary:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+          description: Canonical event id (evt_…); pass to get_match_odds / compare_lines.
+        sport:
+          type: string
+          title: Sport
+          description: football | basketball
+        league:
+          type: string
+          title: League
+          description: League name, e.g. 'English Premier League'.
+        home_team:
+          type: string
+          title: Home Team
+        away_team:
+          type: string
+          title: Away Team
+        scheduled_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scheduled At
+          description: Kickoff, ISO-8601 UTC.
+        scheduled_at_local:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scheduled At Local
+          description: Kickoff in the requested timezone (ISO-8601); null when no timezone was given.
+        status:
+          type: string
+          title: Status
+          description: scheduled | live | finished
+        score:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+          description: Current score when live, else null.
+        red_cards:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+          description: Red cards per side; null when not tracked by upstream.
+        clock:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Clock
+          description: 'Match clock when live, humanized for display: e.g. ''1st half 25'''', ''2nd half
+            47'''' (the real minute, not estimated) or ''half-time''; null pre-match or when the feed
+            omits it. Basketball clocks (e.g. ''Q2 4:12'') pass through as-is.'
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+          description: Fuzzy-match confidence 0–1 (find_match only; null elsewhere).
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+          description: One-line human-readable status, e.g. "Man City vs Arsenal — LIVE 1h 23 2-1." or
+            "… — Kicks off 18:00 UTC on Jun 01." — ready to read to a user.
+      type: object
+      required:
+      - event_id
+      - sport
+      - league
+      - home_team
+      - away_team
+      - status
+      title: MatchSummary
+      description: A fixture flattened for agent consumption (teams as names, optional live score).
+    NextAction:
+      properties:
+        tool:
+          type: string
+          title: Tool
+          description: Tool to call next, e.g. 'get_match_odds' | 'compare_lines' | 'list_today_matches'.
+        args:
+          additionalProperties:
+            type: string
+          type: object
+          title: Args
+          description: 'Ready-to-use arguments for that call, e.g. {''event_id'': ''evt_…''}.'
+        reason:
+          type: string
+          title: Reason
+          description: Why this is the suggested next step.
+      type: object
+      required:
+      - tool
+      - reason
+      title: NextAction
+      description: The single best next call to make, pre-computed so the agent doesn't have to plan it
+        (W3).
+    OddsBlock:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        as_of:
+          type: string
+          title: As Of
+        stale:
+          type: boolean
+          title: Stale
+        odds:
+          items:
+            $ref: '#/components/schemas/OddsQuote'
+          type: array
+          title: Odds
+      type: object
+      required:
+      - event_id
+      - as_of
+      - stale
+      - odds
+      title: OddsBlock
+    OddsQuote:
+      properties:
+        bookmaker:
+          type: string
+          title: Bookmaker
+        market_type:
+          type: string
+          title: Market Type
+        period:
+          type: string
+          title: Period
+        line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Line
+        handicap_components:
+          anyOf:
+          - items:
+              type: number
+            type: array
+          - type: 'null'
+          title: Handicap Components
+        prices:
+          additionalProperties:
+            anyOf:
+            - type: number
+            - type: integer
+          type: object
+          title: Prices
+        format:
+          type: string
+          title: Format
+          default: decimal
+        status:
+          type: string
+          title: Status
+        as_of:
+          type: string
+          title: As Of
+      type: object
+      required:
+      - bookmaker
+      - market_type
+      - period
+      - prices
+      - status
+      - as_of
+      title: OddsQuote
+    OpeningLine:
+      properties:
+        bookmaker:
+          type: string
+          title: Bookmaker
+        market_type:
+          type: string
+          title: Market Type
+          description: 1x2 | asian_handicap | totals
+        period:
+          type: string
+          title: Period
+          description: full_time | half_time
+        line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Line
+          description: The OPENING line (null for 1x2). For totals/AH this is the line the market opened
+            at; it may differ from `current_line` — that difference IS the line movement.
+        handicap_components:
+          anyOf:
+          - items:
+              type: number
+            type: array
+          - type: 'null'
+          title: Handicap Components
+          description: Quarter-line split of the opening line, when applicable.
+        opening:
+          additionalProperties:
+            anyOf:
+            - type: number
+            - type: integer
+          type: object
+          title: Opening
+          description: Opening (first-seen, frozen) prices in the requested format.
+        current:
+          anyOf:
+          - additionalProperties:
+              anyOf:
+              - type: number
+              - type: integer
+            type: object
+          - type: 'null'
+          title: Current
+          description: Current prices (null if no current quote). 1x2 is same line; for totals/AH read
+            alongside `current_line`, as the line may have moved since open — diff for movement.
+        current_line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Current Line
+          description: Line the CURRENT quote sits at (null for 1x2 or when no current quote). Differs
+            from `line` when the market moved since open.
+        current_handicap_components:
+          anyOf:
+          - items:
+              type: number
+            type: array
+          - type: 'null'
+          title: Current Handicap Components
+          description: Quarter-line split of the current line, when applicable.
+        opened_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Opened At
+          description: When the upstream first recorded this opening (ISO-8601 UTC).
+        format:
+          type: string
+          title: Format
+          default: decimal
+      type: object
+      required:
+      - bookmaker
+      - market_type
+      - period
+      - opening
+      title: OpeningLine
+      description: A book's opening (first-seen) quote paired with its current quote for movement reading.
+    OpeningLineRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+          description: Natural-language fixture, e.g. 'Real Madrid vs Barcelona' or a single team name.
+        markets:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Markets
+          description: 'Filter to these market types: 1x2 | asian_handicap | totals.'
+        bookmakers:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Bookmakers
+          description: Filter to these bookmaker keys, e.g. ['pinnacle','crown'].
+        period:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Period
+          description: 'full_time | half_time (default: both).'
+        format:
+          type: string
+          title: Format
+          description: 'Odds format: decimal | hk | malay | american | indonesian | probability.'
+          default: decimal
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Optional filter: football | basketball.'
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+          description: Optional UTC date 'YYYY-MM-DD' to disambiguate same-name fixtures.
+      type: object
+      required:
+      - query
+      title: OpeningLineRequest
+    OpeningLineResult:
+      properties:
+        status:
+          type: string
+          title: Status
+        query:
+          type: string
+          title: Query
+        summary:
+          type: string
+          title: Summary
+        match:
+          anyOf:
+          - $ref: '#/components/schemas/MatchSummary'
+          - type: 'null'
+        lines:
+          items:
+            $ref: '#/components/schemas/OpeningLine'
+          type: array
+          title: Lines
+        alternatives:
+          items:
+            $ref: '#/components/schemas/MatchAlternative'
+          type: array
+          title: Alternatives
+        ask_user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ask User
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        stale:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Stale
+          description: Freshness of the current quotes (W4); null when no match resolved.
+        source:
+          type: string
+          title: Source
+          description: Provenance of the opening odds.
+        decision:
+          $ref: '#/components/schemas/Decision'
+          description: 'Pre-computed go/no-go (W3): safe_to_proceed + suggested next_action.'
+      type: object
+      required:
+      - status
+      - query
+      - summary
+      - decision
+      title: OpeningLineResult
+      description: 'One-call NL→opening: resolve a fixture and return each book''s opening line + current
+        price.
+
+
+        ``status``: ok | ambiguous | not_found (same go/no-go contract as get_sharp_line — never
+
+        guesses an ambiguous fixture). The opening is the **true market open** for every market, so
+
+        open→current is real movement: for **1x2** a price move; for **totals/AH** compare `line`
+
+        (opening) vs `current_line` to read the line move, and the prices alongside. Best-effort
+
+        upstream: a market with no opening yet on file is omitted.'
+    OpeningQuote:
+      properties:
+        bookmaker:
+          type: string
+          title: Bookmaker
+        market_type:
+          type: string
+          title: Market Type
+        period:
+          type: string
+          title: Period
+        line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Line
+        handicap_components:
+          anyOf:
+          - items:
+              type: number
+            type: array
+          - type: 'null'
+          title: Handicap Components
+        prices:
+          additionalProperties:
+            anyOf:
+            - type: number
+            - type: integer
+          type: object
+          title: Prices
+        format:
+          type: string
+          title: Format
+          default: decimal
+        opened_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Opened At
+      type: object
+      required:
+      - bookmaker
+      - market_type
+      - period
+      - prices
+      title: OpeningQuote
+      description: 'An opening (初盘) quote — the open-line counterpart of :class:`OddsQuote`.
+
+
+        Same shape as a current quote minus the live ``status`` (an opening is by definition the frozen
+
+        first-seen price). ``opened_at`` is when the upstream first recorded it (UTC). This is the **true
+
+        market opening**: for totals/AH the ``line`` is the *opening* line, which may differ from the
+
+        current ``/odds`` quote''s line — diff price **and** line across the two endpoints to read movement.'
+    Page:
+      properties:
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+        limit:
+          type: integer
+          title: Limit
+      type: object
+      required:
+      - limit
+      title: Page
+    Paginated_Event_:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Event'
+          type: array
+          title: Data
+        page:
+          $ref: '#/components/schemas/Page'
+      type: object
+      required:
+      - data
+      - page
+      title: Paginated[Event]
+    Paginated_League_:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/League'
+          type: array
+          title: Data
+        page:
+          $ref: '#/components/schemas/Page'
+      type: object
+      required:
+      - data
+      - page
+      title: Paginated[League]
+    Paginated_Team_:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Team'
+          type: array
+          title: Data
+        page:
+          $ref: '#/components/schemas/Page'
+      type: object
+      required:
+      - data
+      - page
+      title: Paginated[Team]
+    ResolveContext:
+      properties:
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+        date_range:
+          anyOf:
+          - $ref: '#/components/schemas/DateRange'
+          - type: 'null'
+      type: object
+      title: ResolveContext
+    ResolveEventRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+        context:
+          anyOf:
+          - $ref: '#/components/schemas/ResolveContext'
+          - type: 'null'
+      type: object
+      required:
+      - query
+      title: ResolveEventRequest
+    ResolveEventResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        best_match:
+          anyOf:
+          - $ref: '#/components/schemas/EventCandidate'
+          - type: 'null'
+        alternatives:
+          items:
+            $ref: '#/components/schemas/EventCandidate'
+          type: array
+          title: Alternatives
+          default: []
+      type: object
+      required:
+      - status
+      title: ResolveEventResponse
+    ResolveLeagueRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+      type: object
+      required:
+      - query
+      title: ResolveLeagueRequest
+    ResolveLeagueResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        best_match:
+          anyOf:
+          - $ref: '#/components/schemas/LeagueCandidate'
+          - type: 'null'
+        alternatives:
+          items:
+            $ref: '#/components/schemas/LeagueCandidate'
+          type: array
+          title: Alternatives
+          default: []
+      type: object
+      required:
+      - status
+      title: ResolveLeagueResponse
+    ResolveTeamRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+      type: object
+      required:
+      - query
+      title: ResolveTeamRequest
+    ResolveTeamResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        best_match:
+          anyOf:
+          - $ref: '#/components/schemas/TeamCandidate'
+          - type: 'null'
+        alternatives:
+          items:
+            $ref: '#/components/schemas/TeamCandidate'
+          type: array
+          title: Alternatives
+          default: []
+      type: object
+      required:
+      - status
+      title: ResolveTeamResponse
+    ResultEntry:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+          description: Canonical event id (evt_…).
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: football | basketball.
+        league:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: League
+          description: League name.
+        home_team:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Home Team
+          description: Home team name.
+        away_team:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Away Team
+          description: Away team name.
+        scheduled_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scheduled At
+          description: Kickoff, ISO-8601 UTC.
+        score:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+          description: Final score {home, away}.
+        red_cards:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+          description: Final per-side red-card counts {home, away}; null if none on file.
+        finished_at:
+          type: string
+          title: Finished At
+          description: When this result was first recorded as finished (ISO-8601 UTC).
+      type: object
+      required:
+      - event_id
+      - finished_at
+      title: ResultEntry
+      description: A finished match's cached result — final score, red cards and when it finished.
+    ResultsResponse:
+      properties:
+        count:
+          type: integer
+          title: Count
+          description: Number of results returned.
+        results:
+          items:
+            $ref: '#/components/schemas/MatchResult'
+          type: array
+          title: Results
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+          description: 'Set when 0 results but the queried fixture exists and hasn''t finished: its current
+            status, so an empty list isn''t mistaken for ''no such match''.'
+      type: object
+      required:
+      - count
+      title: ResultsResponse
+    ScanSlateRequest:
+      properties:
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+          description: 'Filter: football | basketball.'
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+          description: 'Filter: live | scheduled | finished.'
+        league:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: League
+          description: Filter by external league id (lg_…).
+        markets:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Markets
+          description: Limit the value/arb scan to these markets; default all.
+        period:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Period
+          description: Limit to full_time | half_time; default both.
+        min_edge_pct:
+          type: number
+          minimum: 0.0
+          title: Min Edge Pct
+          description: Value threshold for the per-match signal (default 1.0%).
+          default: 1.0
+        min_margin_pct:
+          type: number
+          minimum: 0.0
+          title: Min Margin Pct
+          description: Arbitrage threshold for the per-match signal (default 0%).
+          default: 0.0
+        only_signal:
+          type: boolean
+          title: Only Signal
+          description: If true, return only matches that have a value or arb signal.
+          default: false
+        format:
+          type: string
+          title: Format
+          description: Odds format for rendered prices.
+          default: decimal
+        limit:
+          type: integer
+          maximum: 100.0
+          minimum: 1.0
+          title: Limit
+          description: Max entries to return (signal-first).
+          default: 20
+      type: object
+      title: ScanSlateRequest
+    ScanSlateResult:
+      properties:
+        date:
+          type: string
+          title: Date
+          description: The UTC date treated as 'today' (YYYY-MM-DD).
+        count:
+          type: integer
+          title: Count
+          description: Total fixtures in the filtered slate (before limit).
+        with_signal:
+          type: integer
+          title: With Signal
+          description: How many of those have a value or arb signal.
+        returned:
+          type: integer
+          title: Returned
+          description: How many entries are in this response.
+        truncated:
+          type: boolean
+          title: Truncated
+          description: True if more fixtures matched than were returned.
+        entries:
+          items:
+            $ref: '#/components/schemas/SlateEntry'
+          type: array
+          title: Entries
+        summary:
+          type: string
+          title: Summary
+      type: object
+      required:
+      - date
+      - count
+      - with_signal
+      - returned
+      - truncated
+      - summary
+      title: ScanSlateResult
+      description: 'Today''s slate with each fixture''s honest status + value/arb signal, signal-first.
+
+
+        Collapses the per-fixture loop into one call. ``count`` is the whole filtered slate; entries are
+
+        sorted with value/arb matches first and truncated to ``limit`` (so truncation drops the quiet
+
+        ones). Line movement is NOT here (it needs the opening lookup) — drill into one fixture with
+
+        get_opening_line. DETECTION ONLY / read-only, like find_value & find_arbitrage.'
+    Score:
+      properties:
+        home:
+          type: integer
+          title: Home
+        away:
+          type: integer
+          title: Away
+      type: object
+      required:
+      - home
+      - away
+      title: Score
+    ScoreEntry:
+      properties:
+        score:
+          type: string
+          title: Score
+          description: Full-time scoreline home-away, e.g. '1-0'.
+        prob:
+          type: number
+          title: Prob
+          description: Market-implied probability of that exact score.
+      type: object
+      required:
+      - score
+      - prob
+      title: ScoreEntry
+    ScoreProbRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+          description: Natural-language fixture, e.g. 'Mexico vs South Africa' or a team.
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+        top:
+          type: integer
+          maximum: 10.0
+          minimum: 1.0
+          title: Top
+          description: How many scorelines to return (1-10).
+          default: 5
+      type: object
+      required:
+      - query
+      title: ScoreProbRequest
+    ScoreProbResult:
+      properties:
+        status:
+          type: string
+          title: Status
+        query:
+          type: string
+          title: Query
+        summary:
+          type: string
+          title: Summary
+        match:
+          anyOf:
+          - $ref: '#/components/schemas/MatchSummary'
+          - type: 'null'
+        scores:
+          items:
+            $ref: '#/components/schemas/ScoreEntry'
+          type: array
+          title: Scores
+          description: Top-K scorelines by probability, descending.
+        top_cum:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Top Cum
+          description: Probability mass covered by the returned scores.
+        implied_1x2:
+          anyOf:
+          - additionalProperties:
+              type: number
+            type: object
+          - type: 'null'
+          title: Implied 1X2
+          description: The grid's home/draw/away probabilities — the de-vigged 1x2 it was fit to, or,
+            when the moneyline was suspended and supremacy came from the asian handicap, the 1x2 the fitted
+            grid implies.
+        lambda_home:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lambda Home
+          description: Fitted Poisson goal rate, home (remaining goals when the match is live).
+        lambda_away:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lambda Away
+          description: Fitted Poisson goal rate, away (remaining goals when the match is live).
+        rho:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Rho
+          description: Dixon-Coles low-score adjustment.
+        ah_ev_check:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Ah Ev Check
+          description: EV of the fair asian-handicap price under the fitted grid (held-out cross-check;
+            ≈0 means 1x2/totals/AH are internally consistent).
+        fair_from:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fair From
+          description: Bookmaker whose de-vigged 1x2 anchored the fit.
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        stale:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Stale
+        alternatives:
+          items:
+            $ref: '#/components/schemas/MatchAlternative'
+          type: array
+          title: Alternatives
+        ask_user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ask User
+        decision:
+          $ref: '#/components/schemas/Decision'
+      type: object
+      required:
+      - status
+      - query
+      - summary
+      - decision
+      title: ScoreProbResult
+      description: 'Market-implied correct-score probabilities for ONE football match.
+
+
+        The de-vigged 1x2 + totals markets are inverted into a bivariate-Poisson
+
+        (Dixon-Coles) score grid; the asian-handicap fair price is held out and
+
+        reported as ``ah_ev_check`` (≈0 = the markets agree with the grid). When the
+
+        moneyline is suspended (common once a match is decided) but the books keep
+
+        totals + AH open, supremacy is solved from the handicap instead and
+
+        ``ah_ev_check`` is null. Live matches are conditioned on the current score:
+
+        the lambdas describe REMAINING goals and scorelines are still full-time
+
+        (never below the current score). This is what the market implies, not a
+
+        house prediction. ``status`` mirrors get_sharp_line: ok | ambiguous |
+
+        not_found | no_data.'
+    SharpLineRequest:
+      properties:
+        query:
+          type: string
+          title: Query
+        market_type:
+          type: string
+          title: Market Type
+          default: asian_handicap
+        period:
+          type: string
+          title: Period
+          default: full_time
+        format:
+          type: string
+          title: Format
+          default: decimal
+        sport:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sport
+        date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date
+        verbosity:
+          type: string
+          title: Verbosity
+          description: full | terse. 'terse' empties the per-book `books` array inside `comparison` (the
+            bulk of the payload); the top-level `summary` and the worked numbers are kept either way.
+          default: full
+      type: object
+      required:
+      - query
+      title: SharpLineRequest
+    SharpLineResult:
+      properties:
+        status:
+          type: string
+          title: Status
+        query:
+          type: string
+          title: Query
+        summary:
+          type: string
+          title: Summary
+        match:
+          anyOf:
+          - $ref: '#/components/schemas/MatchSummary'
+          - type: 'null'
+        comparison:
+          anyOf:
+          - $ref: '#/components/schemas/CompareLinesResult'
+          - type: 'null'
+        alternatives:
+          items:
+            $ref: '#/components/schemas/MatchAlternative'
+          type: array
+          title: Alternatives
+        ask_user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ask User
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        stale:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Stale
+          description: Freshness of the comparison (W4); null when no match resolved.
+        decision:
+          $ref: '#/components/schemas/Decision'
+          description: 'Pre-computed go/no-go (W3): safe_to_proceed + suggested next_action. Canonical
+            home of the decision; the top-level ask_user is kept for back-compat.'
+      type: object
+      required:
+      - status
+      - query
+      - summary
+      - decision
+      title: SharpLineResult
+      description: 'One-call NL→answer: resolve a fixture and return its worked sharp line (W1).
+
+
+        ``status`` is the caller''s go/no-go signal: ``ok`` (``match`` + ``comparison`` are set),
+
+        ``ambiguous`` (``alternatives`` + ``ask_user`` are set, ``comparison`` is null — we do NOT
+
+        guess), or ``not_found``. ``summary`` is always a ready-to-read sentence.'
+    SlateEntry:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        sport:
+          type: string
+          title: Sport
+        league:
+          type: string
+          title: League
+        home_team:
+          type: string
+          title: Home Team
+        away_team:
+          type: string
+          title: Away Team
+        status:
+          type: string
+          title: Status
+          description: 'scheduled | live | finished (finished is inferred: elapsed-time backstop plus,
+            for football, early detection when the match clock stops and every book pulls its quotes).'
+        score:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+        red_cards:
+          anyOf:
+          - $ref: '#/components/schemas/Score'
+          - type: 'null'
+          description: Red cards per side; null when not tracked by upstream.
+        clock:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Clock
+          description: 'Match clock when live, humanized: e.g. ''1st half 25'''', ''2nd half 47'''' or
+            ''half-time''; null otherwise.'
+        scheduled_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scheduled At
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        stale:
+          type: boolean
+          title: Stale
+          description: Freshness of this fixture's odds (W4).
+        book_count:
+          type: integer
+          title: Book Count
+          description: Distinct books quoting this fixture (after tier gating).
+        value_count:
+          type: integer
+          title: Value Count
+          description: Number of +EV outcomes at/above min_edge_pct.
+        best_value:
+          anyOf:
+          - $ref: '#/components/schemas/ValueBet'
+          - type: 'null'
+          description: The single highest-edge value bet.
+        arb_count:
+          type: integer
+          title: Arb Count
+          description: Number of cross-book arbitrage opportunities at/above min_margin_pct.
+        best_arb:
+          anyOf:
+          - $ref: '#/components/schemas/ArbOpportunity'
+          - type: 'null'
+          description: The single highest-margin arb.
+        favorite:
+          anyOf:
+          - $ref: '#/components/schemas/Favorite'
+          - type: 'null'
+          description: Who the full-time 1x2 line favors (de-vigged), e.g. {outcome:'home', team:'Brazil',
+            win_probability:0.58}; null when no 1x2 is on file for this fixture/tier. Computed for the
+            returned entries only.
+        signal:
+          type: string
+          title: Signal
+          description: 'One-line human summary: status + best value/arb (or ''no value/arb'').'
+      type: object
+      required:
+      - event_id
+      - sport
+      - league
+      - home_team
+      - away_team
+      - status
+      - stale
+      - book_count
+      - value_count
+      - arb_count
+      - signal
+      title: SlateEntry
+      description: One fixture on the slate with its honest status + pre-computed value/arb signal.
+    Sport:
+      properties:
+        id:
+          type: string
+          title: Id
+        key:
+          type: string
+          title: Key
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - key
+      - name
+      title: Sport
+    Team:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        disambiguator:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Disambiguator
+      type: object
+      required:
+      - id
+      - name
+      title: Team
+    TeamCandidate:
+      properties:
+        team_id:
+          type: string
+          title: Team Id
+        confidence:
+          type: number
+          title: Confidence
+      type: object
+      required:
+      - team_id
+      - confidence
+      title: TeamCandidate
+    TeamRef:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: TeamRef
+    TodayMatchesResult:
+      properties:
+        date:
+          type: string
+          title: Date
+          description: The date treated as 'today' (YYYY-MM-DD) — UTC, or the given timezone's day.
+        count:
+          type: integer
+          title: Count
+        matches:
+          items:
+            $ref: '#/components/schemas/MatchSummary'
+          type: array
+          title: Matches
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+          description: 'Set when the list is empty: the next upcoming fixture matching the filters.'
+      type: object
+      required:
+      - date
+      - count
+      - matches
+      title: TodayMatchesResult
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    ValueBet:
+      properties:
+        market_type:
+          type: string
+          title: Market Type
+        period:
+          type: string
+          title: Period
+        line:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Line
+          description: AH/totals line; null for 1x2.
+        outcome:
+          type: string
+          title: Outcome
+          description: home | draw | away | over | under.
+        bookmaker:
+          type: string
+          title: Bookmaker
+          description: The book offering the value price (its key).
+        price:
+          anyOf:
+          - type: number
+          - type: integer
+          title: Price
+          description: Best available price, in the requested format.
+        decimal:
+          type: number
+          title: Decimal
+          description: That price in decimal (for comparison).
+        fair_price:
+          type: number
+          title: Fair Price
+          description: De-vigged fair decimal price from the sharp reference book.
+        edge_pct:
+          type: number
+          title: Edge Pct
+          description: (decimal / fair_price − 1) × 100. Positive ⇒ +EV.
+        format:
+          type: string
+          title: Format
+          default: decimal
+      type: object
+      required:
+      - market_type
+      - period
+      - outcome
+      - bookmaker
+      - price
+      - decimal
+      - fair_price
+      - edge_pct
+      title: ValueBet
+      description: 'A single +EV outcome: a book''s price exceeds the de-vigged fair price for that outcome.'
+    WinConditions:
+      properties:
+        full_win:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Full Win
+        half_win:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Half Win
+        push:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Push
+        half_loss:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Half Loss
+        full_loss:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Full Loss
+      type: object
+      title: WinConditions

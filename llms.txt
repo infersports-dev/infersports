@@ -1,0 +1,279 @@
+# InferSports
+
+> Sharp Asian odds, built for code. A read-only REST API for live betting odds from 6 Asian
+> bookmakers plus Pinnacle (football & basketball; 1x2 / Asian handicap / totals; full-time &
+> half-time). Prices are normalized to decimal and renderable in six formats. Current/live odds
+> only — no historical odds (finished-match scores are cached 30 days for results lookup).
+> Read-only; never a betting/execution API.
+
+Base URL: https://api.infersports.dev/v1 (local development: http://localhost:8000/v1)
+Auth: send `Authorization: Bearer <api_key>`. Keyless requests are served the Free tier with
+strict rate limits and the sharp book (Pinnacle) excluded. Get a key at https://docs.infersports.dev.
+All timestamps are ISO-8601 UTC; every odds payload carries an `as_of` freshness stamp.
+
+## Connect / install
+
+Add InferSports to an agent — three keyless surfaces (Free tier, no signup). The per-host config
+differs, so don't guess it — **the exact, copy-paste block for every host is at
+https://infersports.dev/install.md** (the agent-readable twin of the /install page).
+- **Remote MCP (recommended):** point any MCP client at `https://api.infersports.dev/mcp` (streamable-HTTP). Claude Code,
+  one line: `claude mcp add --transport http infersports https://api.infersports.dev/mcp`. The config field and root key
+  vary by host (`url` Cursor/Codex · `httpUrl` Gemini CLI · `serverUrl` Windsurf · `servers` root key
+  in VS Code · TOML `[mcp_servers.infersports]` in Codex) — use install.md, don't adapt another host's.
+- **Agent Skill:** a keyless, deterministic verb bundle (today / match / line / convert / result) for
+  small-context or local agents — `curl -sSL https://infersports.dev/skill.tgz` into your host's skills
+  dir (`~/.claude/skills/`, `~/.codex/skills/`, `~/.openclaw/workspace/skills/`, …).
+- **Plain REST:** no client at all — `POST https://api.infersports.dev/v1/mcp/<tool>` with a JSON body, or the `/v1/*`
+  endpoints below.
+
+## MCP tools
+
+Agent-first tools — three ways to call them:
+- Remote MCP, one line: point any MCP client at `https://api.infersports.dev/mcp` (streamable-HTTP, keyless Free tier),
+  e.g. `claude mcp add --transport http infersports https://api.infersports.dev/mcp`.
+- Plain REST: `POST https://api.infersports.dev/v1/mcp/<tool>` with a JSON body — no MCP client needed.
+- Local stdio: run `python -m app.mcp` (set `INFERSPORTS_API_KEY` for a paid tier).
+
+- [get_sharp_line](https://api.infersports.dev/v1/mcp/get_sharp_line): **Start here for odds questions.** One call: a
+  natural-language fixture → the resolved match plus the worked sharp line (consensus line, best
+  price per outcome across books, de-vigged fair odds from the sharpest book) and a ready-to-read
+  `summary`. Collapses the find_match → compare_lines round-trip. On an ambiguous fixture it returns
+  `status:"ambiguous"` with an `ask_user` prompt instead of guessing. Carries a `decision` block
+  (`safe_to_proceed` / `ask_user` / `next_action`) — branch on the boolean, don't re-judge.
+- [find_match](https://api.infersports.dev/v1/mcp/find_match): Resolve a natural-language fixture (e.g. "Man City vs
+  Arsenal" or a single team) to a canonical event id, with a confidence score and alternatives,
+  plus a `decision` block (`safe_to_proceed` / `ask_user` / `next_action`): matched ⇒ proceed to
+  get_match_odds, ambiguous ⇒ ask the user, not_found ⇒ list_today_matches.
+- [match_info](https://api.infersports.dev/v1/mcp/match_info): **Casual basics in ONE call** — the score, whether it's
+  live, the kickoff time (pass an IANA `timezone` for local time), and who's favored (de-vigged from
+  the 1x2 line) for a natural-language fixture. No betting knowledge needed: answers "who's winning?",
+  "what's the score?", "what time does Brazil play (in my timezone)?", "who's the favorite?". Same
+  go/no-go as get_sharp_line; `favorite` is best-effort (null when no 1x2 is on file). Also answers
+  "who won X vs Y" for matches that already finished (final score from the 30-day results cache);
+  an inline YYYY-MM-DD in the query text works as the date filter on every query tool.
+- [get_match_odds](https://api.infersports.dev/v1/mcp/get_match_odds): All current quotes for a match across books,
+  in any odds format, with the fixture header. Filter by market, bookmaker and period. Carries
+  `as_of` + a `stale` flag (W4): true when the snapshot is older than the live/pre-match freshness
+  window — warn the user before quoting as live (compare_lines / get_sharp_line carry it too).
+- [compare_lines](https://api.infersports.dev/v1/mcp/compare_lines): One market across all books — best price per
+  outcome, the consensus line, each book's overround, de-vigged fair odds from the sharpest book, and
+  a ready-to-read `summary`. Pass `verbosity:"terse"` (W2) to drop the per-book `books` array (the
+  bulk of the payload) and keep just the worked answer — `book_count` still reports how many books
+  backed it. get_sharp_line accepts the same `verbosity`.
+- [explain_handicap](https://api.infersports.dev/v1/mcp/explain_handicap): Split an Asian handicap line (e.g. -0.75 →
+  -0.5 / -1.0) and state the full-win / half-win / push / loss conditions.
+- [list_today_matches](https://api.infersports.dev/v1/mcp/list_today_matches): Today's fixtures **plus anything still
+  live**, filterable by sport, status (live/scheduled/finished) and league — `league` takes a name
+  (fuzzy-matched, e.g. "World Cup") or an `lg_…` id. "Today" is the UTC day by
+  default; pass an IANA `timezone` and the day boundary (and each `summary`'s kickoff time) is your
+  local day instead. Each carries a ready-to-read `summary`. `finished` is inferred — an elapsed-time
+  backstop plus, for football, early detection of full time (match clock stops + every book pulls its
+  quotes) — so a just-ended match stops showing as live even while its closed (0/suspended) quotes linger.
+- [list_events](https://api.infersports.dev/v1/mcp/list_events): The fixtures for a calendar **day** (`date` required,
+  e.g. "2026-06-12") or a bounded **range** (optional `date_to`, inclusive, ≤31 days — a whole
+  tournament window like "all group-stage matches June 11–28" is ONE call, never a per-day loop;
+  rounds cross UTC midnight). UTC is canonical; pass an IANA `timezone` and
+  the day boundary is computed in that zone (so "June 12 in Asia/Shanghai" excludes a match that is
+  still June 11 / already June 13 locally), with each fixture keeping UTC `scheduled_at` and adding
+  `scheduled_at_local`. A **strict day window** — unlike list_today_matches it does not pull in
+  earlier-but-still-live matches. Capped to `limit` (`truncated` flags overflow); narrow with
+  sport/status/league rather than paging.
+- [list_bookmakers](https://api.infersports.dev/v1/mcp/list_bookmakers): The bookmakers available on your tier (curated
+  catalogue; Free tier excludes the sharp book). Use the returned `key`s in the `bookmakers` filter.
+- [get_opening_line](https://api.infersports.dev/v1/mcp/get_opening_line): ONE call: a natural-language fixture → each
+  book's **true opening odds (初盘)** paired with its current price, so you can read movement. For 1x2
+  it's a price move (the sharp book often opens days earlier); for totals/AH compare `line` (opening)
+  vs `current_line` for the line move. Same `status`/`ask_user` go/no-go as get_sharp_line; best-effort
+  (a book/line with no opening on file is omitted).
+- [find_value](https://api.infersports.dev/v1/mcp/find_value): ONE call: a natural-language fixture → outcomes whose
+  best price across books **beats the sharp (Pinnacle) de-vigged fair line**, with the edge %.
+  **Detection only — read-only: no stake sizing, no bet links.** Needs the sharp book to de-vig;
+  markets it doesn't quote (and the Free tier, which gates it) yield no value + a `note`. Implausibly
+  large edges (a stale/settled in-play quote, not value) are filtered out.
+- [compare_prob](https://api.infersports.dev/v1/mcp/compare_prob): ONE call: a fixture + outcome + an **external implied
+  probability** (e.g. a Polymarket/Kalshi YES price, pre-netted for fees) → the **sharp de-vigged fair
+  probability**, the **edge in percentage points**, ROI and a verdict (good/marginal/no_edge), with
+  `caveats` (1x2 = regulation 90-min; quarter/integer AH carries push mass; staleness). 1x2 uses power
+  de-vig (sharper for 3-way). **Detection only — read-only: we never ingest prediction-market data,
+  size a stake, or pick.** The sharp-fair reference layer for prediction-market / cross-venue traders.
+- [score_prob](https://api.infersports.dev/v1/mcp/score_prob): ONE call: a natural-language fixture → **market-implied
+  correct-score probabilities** for ONE football match. The de-vigged 1x2 (power de-vig) + totals
+  prices are inverted into a bivariate-Poisson (Dixon-Coles) score grid: top-K scorelines (default
+  5, max 10) with probabilities, fitted goal rates, the probability mass covered, and
+  `ah_ev_check` (the asian-handicap fair as a held-out consistency check; ≈0 = the markets agree).
+  **The market's own distribution, never a house prediction.**
+- [find_arbitrage](https://api.infersports.dev/v1/mcp/find_arbitrage): ONE call: a natural-language fixture →
+  **cross-book price inefficiencies** — best price per outcome at the same line whose inverse prices
+  sum to < 1 — with the guaranteed margin % and which book holds each leg (legs from ≥2 distinct
+  books). **Detection only — read-only: no stakes, no bet links.** Implausibly large margins (a stale
+  in-play leg, not a real arb) are filtered out.
+- [scan_slate](https://api.infersports.dev/v1/mcp/scan_slate): **Batch.** Today's whole slate in one call — each fixture
+  with honest status (finished is excluded from `live`), live score/clock, and a pre-computed
+  value/arb signal. Value/arb matches sort to the top; truncated to `limit`. Use this instead of
+  looping find_match → get_sharp_line per match. No line movement here (drill in with get_opening_line).
+- [list_results](https://api.infersports.dev/v1/mcp/list_results): **Look back at finished-match scores** from the rolling
+  30-day results cache — most-recent-first, filterable by date (kickoff day), team or league.
+  Results-only: final score, red cards, finished time (NO odds). Answers "what was the score of X?" /
+  "yesterday's results". The one look-back tool — live odds stay history-free.
+- [get_result](https://api.infersports.dev/v1/mcp/get_result): The cached final result (score, red cards, finished time)
+  for ONE finished match by `event_id`. `status:"not_found"` when it isn't in the 30-day cache.
+
+## REST endpoints
+
+- [List events](https://api.infersports.dev/v1/events): fixtures, filter by sport / league (name or `lg_…` id, e.g. `league=World Cup`) / date / status (add `timezone=` for the date's local day boundary).
+- [Live events](https://api.infersports.dev/v1/events/live): in-play fixtures.
+- [Event odds](https://api.infersports.dev/v1/events/{event_id}/odds): all books, all markets, `?format=` to switch notation.
+- [Event opening](https://api.infersports.dev/v1/events/{event_id}/opening): true opening odds (初盘) per book/market, `?format=`.
+- [Event state](https://api.infersports.dev/v1/events/{event_id}/state): live score, red cards, match clock.
+- [Results](https://api.infersports.dev/v1/results): finished-match scores from the rolling 30-day cache (`?date=&team=&league=`); one match by id at `/results/{event_id}`.
+- [Resolve event](https://api.infersports.dev/v1/resolve/event): fuzzy name → event id (POST).
+- [Convert odds](https://api.infersports.dev/v1/convert/odds): decimal ⇄ HK / Malay / American / Indonesian / probability (POST).
+- [Convert handicap](https://api.infersports.dev/v1/convert/handicap): split a quarter line + win conditions (POST).
+- Metadata: [sports](https://api.infersports.dev/v1/sports), [bookmakers](https://api.infersports.dev/v1/bookmakers),
+  [leagues](https://api.infersports.dev/v1/leagues), [teams](https://api.infersports.dev/v1/teams).
+
+## Choosing a tool (natural-language → call)
+
+Map the user's intent to one call. Most questions resolve in one or two steps.
+
+- "What are the odds / best price / who's sharpest for <NL fixture>?" → `get_sharp_line` (ONE call —
+  pass the natural-language fixture as `query`; no need to find_match first). Shape it with
+  `market_type` ("1x2" | "asian_handicap" | "totals"), `period`, `format`. Returns the resolved
+  match + worked line + a `summary`; prefer it whenever you'd otherwise chain find_match → compare_lines.
+- "Who's winning / what's the score / what time does <Team> play (my timezone) / who's the favorite?"
+  → `match_info` (natural-language `query`; pass an IANA `timezone` for local kickoff time). Casual
+  basics in one call — no betting knowledge needed.
+- "What games are on today / right now?" → `list_today_matches` (today + anything still live; add
+  `status:"live"` for in-play, `sport:"football"|"basketball"` to filter; pass `timezone` for the
+  local day boundary + local kickoff times). "Rolling/in-play/滚球" ⇒ `status:"live"`.
+- "What's on a specific day / this Friday / on June 12 (in my timezone)?" → `list_events` (`date`
+  REQUIRED, "YYYY-MM-DD"; pass an IANA `timezone` so the day boundary is your local day, not UTC).
+  A multi-day window ("the whole group stage") → add `date_to` — one bounded range call.
+  Use this, not a raw `/v1/events` call, when you want one day's schedule; it's bounded by `limit`
+  and never floods context. UTC stays canonical (`scheduled_at`); `scheduled_at_local` is added.
+- "Is <Team A> vs <Team B> on?" / "Who does <Team> play?" → `find_match` (natural-language `query`).
+  Use the returned `event_id` for the calls below — do NOT guess ids.
+- "Show me the odds for this match" → `get_match_odds` (needs `event_id`). "European/欧盘/1X2" ⇒
+  `markets:["1x2"]`; "Asian handicap/让球" ⇒ `["asian_handicap"]`; "over-under/大小球" ⇒ `["totals"]`.
+  "In American odds / Hong Kong / as a probability" ⇒ `format:"american"|"hk"|"probability"`.
+  "Only the first half / 半场" ⇒ `period:"half_time"`. "Only Pinnacle" ⇒ `bookmakers:["pinnacle"]`.
+- "Which book has the best price / who's sharpest?" → `compare_lines` (needs `event_id`,
+  `market_type`): returns best price per outcome, consensus line, per-book overround, fair odds.
+- "What does handicap -0.75 mean / how does it settle?" → `explain_handicap` (just `line`).
+- "What was the opening line / 初盘? How has it moved (open→current)?" → `get_opening_line`
+  (natural-language `query`; same shaping args as get_sharp_line). Returns the true open: 1x2 gives a
+  price move; totals/AH give `line` (opening) vs `current_line` (now) for the line move.
+- "Where's the value / +EV / which price beats the fair line for <NL fixture>?" → `find_value`
+  (natural-language `query`; `min_edge_pct` to set the bar). Measured vs the sharp (Pinnacle)
+  de-vigged fair line — detection only, never a stake or bet link.
+- "Is my Polymarket/Kalshi price good / is this prediction-market price fair / what's the de-vigged
+  fair vs my <NL fixture> price?" → `compare_prob` (natural-language `query` + `outcome` + your
+  `external_prob` in (0,1), pre-netted for the venue's fee/spread). Returns sharp fair %, edge in pp,
+  ROI and a verdict — detection only, never a pick. Default `market_type:"1x2"` (the moneyline a
+  prediction-market binary compares to); only AH ±0.5 maps cleanly to a binary.
+- "What's the most likely score / correct-score odds of <NL fixture>?" → `score_prob`
+  (natural-language `query`, optional `date`, `top` 1-10). Market-implied scoreline distribution
+  derived from the de-vigged 1x2 + totals — football, ONE match per call; the market's numbers,
+  not a prediction.
+- "Is there an arb / sure bet / arbitrage in <NL fixture>?" → `find_arbitrage` (natural-language
+  `query`; `min_margin_pct` to set the bar). Cross-book inefficiency only — detection, no stakes/links.
+- "Scan tonight's card / where's the value or movement across today's matches?" → `scan_slate` (ONE
+  call for the whole slate, value/arb signal already on each fixture; add `only_signal:true` for just
+  the hits, `status:"live"` for in-play). Then drill into one fixture with get_sharp_line / get_opening_line.
+- "What was the score of <fixture> / yesterday's results / how did <Team> do?" → `list_results`
+  (rolling 30-day cache; filter by `date` = kickoff day, `team`, or `league`), or `get_result` for one
+  finished match by `event_id`. Results-only (final score + red cards) — the one look-back call; live
+  odds have no history.
+
+Typical chain: `list_today_matches` or `find_match` → take `event_id` → `get_match_odds` /
+`compare_lines`. The odds response is `{ "event_id", "home_team", "away_team", ..., "odds": [...] }`
+— a flat list of quotes (no nested `bookmakers` wrapper). For a single fixture's odds you can skip
+the chain entirely: `get_sharp_line` does resolve + compare in one call.
+
+## Rate limits & efficient use (read before looping)
+
+Every key has a per-minute budget (token bucket): **Free = 60 req/min** (burst 30, no sharp books),
+**Standard = 600 req/min** (burst 120, all books). Keyless requests use the Free budget.
+Each response carries `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` headers.
+
+To stay within budget (this matters for multi-step agents):
+- Call `list_today_matches` ONCE to get ids, then query the specific matches you need — do NOT probe
+  every fixture's odds in a loop. A single agent reasoning session can otherwise exhaust even the
+  Standard budget.
+- On `429 rate_limit_exceeded`, the error carries `retry_after_seconds` — wait that long, then retry.
+  **A 429 means "slow down", NOT "no data".** Do not report the absence of a result to the user.
+- On `503 upstream_unavailable` (the upstream snapshot is still warming up at startup, or the feed
+  reconnecting), it is retriable — wait `retry_after_seconds` and retry; this is transient, not
+  "no matches today".
+
+## Errors
+
+Stable envelope: `{ "error": { "code", "message", "fix", "is_retriable", "retry_after_seconds",
+"documentation_url" } }`. When `fix` is non-null it is the concrete corrective action — apply it
+(change the named param / fetch the id it points to) instead of blind-retrying. Switch on `code`:
+
+- `invalid_request` (400): malformed input — e.g. an `event_id` that fails to decode, a bad
+  `format`/`market`/`period`, or an ambiguous `league` name (the error lists the candidate `lg_…`
+  ids — re-send with one of them). Fix the request; do not retry unchanged.
+- `not_found` (404): a well-formed id that has no current match/odds (e.g. it ended or isn't live).
+- `unauthorized` (401): missing/invalid/revoked key. Note: a copy-pasted key with a stray trailing
+  character is the common cause — keys are exactly `isk_` + 32 chars.
+- `forbidden` / `plan_limit` (403/402): your tier can't access this (e.g. Free requesting a sharp
+  book, or a market your plan excludes). Not retriable without an upgrade.
+- `rate_limit_exceeded` (429) / `upstream_unavailable` (503): retriable — honor `retry_after_seconds`.
+
+Treat `is_retriable:true` as "back off and retry"; `is_retriable:false` as "apply `fix`, or stop".
+
+## Determinism & caching contract
+
+What you can build against — so you can cache aggressively and write stable tests:
+
+- **Frozen surface.** The `/v1` path layout is permanent; breaking changes ship under a new prefix
+  (`/v2`), never by mutating `/v1`. Entity ids (`evt_`, `tm_`, `lg_`, `bk_`, `sp_`, `mkt_`) are
+  Sqids-encoded with a fixed alphabet — the same entity keeps the same id across calls and restarts,
+  so ids are safe to persist and to use as cache keys.
+- **Fixed response shapes.** For a given endpoint the field set never changes between calls. Optional
+  values are sent as `null`, never dropped from the object — deserialize into a fixed struct and skip
+  defensive key-existence checks. The one exception is `POST /v1/convert/odds`, which returns only the
+  `to` formats you ask for.
+- **Pure functions — same input, same output, forever.** `convert/odds`, `convert/handicap`,
+  `explain_handicap`, and id encode/decode never touch the feed: cache them indefinitely and write
+  exact-value golden tests against them.
+- **Snapshot reads — shape frozen, values live.** `events*`, `get_match_odds`, `compare_lines`,
+  `get_sharp_line`, `find_match`, `list_today_matches` hold a fixed contract (fields, types, id
+  stability, enum domains) but their numbers move with the market. Assert on shape and field presence
+  in tests, not on exact prices.
+- **Closed enum domains** (fixed sets — switch on them safely): market_type `1x2 | asian_handicap |
+  totals`; period `full_time | half_time`; event status `scheduled | live | finished`; quote status
+  `open | suspended`; format `decimal | hk | malay | american | indonesian | probability`.
+- **Explicitly NOT guaranteed:** odds *values*, and the *count* of live fixtures — an empty list is a
+  valid answer when nothing is in-play, not an error or an outage. There is no historical odds data —
+  though finished-match scores are cached for 30 days (see `list_results` / `get_result`).
+
+## Reference
+
+- [OpenAPI 3.1 spec](https://api.infersports.dev/openapi.json) — full machine-readable contract
+  (every endpoint, parameter, and response schema). Fetch this when you need exact parameter shapes.
+- `GET /llms-full.txt` (keyless) — the **full agent reference**: this map plus every tool's worked
+  request/response, the complete field tables, Asian-handicap settlement math, the bookmaker id
+  table, and an end-to-end example session. Fetch it once instead of paging through OpenAPI.
+- [Documentation](https://docs.infersports.dev)
+- Bookmakers: 7 books — Crown, Sbobet, Macau, M8bet, Pinnacle (sharp), Nova88, HKJC.
+  The sharp book (Pinnacle) is Free-tier gated.
+- Markets: `1x2`, `asian_handicap`, `totals`. Periods: `full_time`, `half_time`.
+- Odds formats: `decimal` (default), `hk`, `malay`, `american`, `indonesian`, `probability`.
+- Coverage is **goals markets only** — corner / card / player-prop markets are out of scope and are
+  not in the feed. Football & basketball only.
+- **Per-match markets only** — no outright/futures ("who wins the World Cup", "to qualify from the
+  group", season winner) and no tournament structure (groups/brackets). A team's group-stage
+  opponents DO fall out of a `list_events` range query filtered by league.
+
+## Notes
+
+- Read-only API. There are no order/bet/execution endpoints and never will be. If a user asks to
+  place a bet, decline — this API cannot execute wagers.
+- No historical ODDS — only the current live snapshot is served; "odds movement / last month's prices"
+  cannot be answered. Finished-match SCORES are the exception: the rolling 30-day results cache
+  (`list_results` / `get_result`) answers "what was the score?" for the last 30 days — scores only, no odds.
+- All timestamps are ISO-8601 UTC; every odds payload carries an `as_of` freshness stamp. A quote may
+  be `"status":"suspended"` (the book has pulled the line mid-event) — that is normal, not an error.
